@@ -1,9 +1,12 @@
+import sys
 from datetime import datetime
 import io
 import os
 from time import sleep
 
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from item import *
 import cv2
@@ -19,9 +22,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 '''
 python.exe -m pip install --upgrade pip
+pip install selenium
 pip install webdriver-manager
 pip install opencv-python
 pip install pyinstaller
+pip install Image
+
+pyinstaller --onefile --add-data "img;img" main.py
 '''
 
 options = Options()
@@ -45,18 +52,23 @@ actions = ActionChains(driver)
 soundVolume = comm.soundV
 soundDuration = comm.soundD
 
-mode = IU_ALL
-dayArr = [comm.selSun, comm.dayConfirm]
+mode = pt
+dayArr = [comm.sel1, comm.sel2, comm.sel3, comm.dayConfirm]
 account = dongbin
 conName = "IU"
 timeout = 0
 
-def init(type1, type2, type3, type4):
+def init(type0, type1, type2, type3, type4):
+    if type0 == "pt":
+        mode = pt
+    elif type0 == "iu":
+        mode = IU_ALL
+
     if type1 == "dongbin":       account = dongbin
     elif type1 == "luv":       account = luv
 
-    if type2 == "sat":  dayArr[0] = comm.selSat
-    elif type2 == "sun":  dayArr[0] = comm.selSun
+    # if type2 == "sat":  dayArr[0] = comm.selSat
+    # elif type2 == "sun":  dayArr[0] = comm.selSun
 
     driver.get(mode.url)
     driver.implicitly_wait(5)
@@ -71,6 +83,8 @@ def init(type1, type2, type3, type4):
     # 일자 선택
     onClickBtn(dayArr[0])
     onClickBtn(dayArr[1])
+    onClickBtn(dayArr[2])
+    onClickBtn(dayArr[3])
 
     # 새로운 팝업 대기
     sleep(15)
@@ -80,15 +94,17 @@ def init(type1, type2, type3, type4):
     iframe = driver.find_element(By.ID, 'oneStopFrame')
     driver.switch_to.frame(iframe)
 
-    onClickBtn(mode.openSeat_V)
-    onClickBtn(mode.openSeat_R)
-    onClickBtn(mode.openSeat_S)
-    onClickBtn(mode.openSeat_A)
-    onClickBtn(mode.openSeat_B)
+    # onClickBtn(mode.openSeat_V)
+    # onClickBtn(mode.openSeat_R)
+    # onClickBtn(mode.openSeat_S)
+    # onClickBtn(mode.openSeat_A)
+    # onClickBtn(mode.openSeat_B)
 
     # 좌표 체크(필요 시 사용)
     while False:
         chkXY()
+
+    actions.move_by_offset(654, 75).click().perform()
 
     # 좌석여부 체크 후 미존재 시 새로고침
     for j in range(999999):
@@ -96,21 +112,23 @@ def init(type1, type2, type3, type4):
             quit()
 
         if "V" in type3:
-            for i in range(1, mode.zoneCount_V, 1):
-                try:
-                    onClickBtn(mode.zoneSelect_V1 + str(i) + mode.zoneSelect_V2)
-                    getImage('V', type1, type2, type4)
-                except Exception as e:
-                    print(f"예외 발생: {e}")
-                    break
+            # for i in range(1, mode.zoneCount_V, 1):
+            #     try:
+            #         onClickBtn(mode.zoneSelect_V1 + str(i) + mode.zoneSelect_V2)
+            #         getImage('V', type1, type2, type4)
+            #     except Exception as e:
+            #         print(f"예외 발생: {e}")
+            #         break
+            getImage('V', type1, type2, type4)
         if "R" in type3:
-            for i in range(1, mode.zoneCount_R, 1):
-                try:
-                    onClickBtn(mode.zoneSelect_R1 + str(i) + mode.zoneSelect_R2)
-                    getImage('R', type1, type2, type4)
-                except Exception as e:
-                    print(f"예외 발생: {e}")
-                    break
+            # for i in range(1, mode.zoneCount_R, 1):
+            #     try:
+            #         onClickBtn(mode.zoneSelect_R1 + str(i) + mode.zoneSelect_R2)
+            #         getImage('R', type1, type2, type4)
+            #     except Exception as e:
+            #         print(f"예외 발생: {e}")
+            #         break
+            getImage('R', type1, type2, type4)
         if "S" in type3:
             # /html/body/div/div[2]/div[2]/div/div[1]/div/table/tbody/tr[6]/td/div/ul/li[7]
             if type1 == "dongbin":
@@ -156,10 +174,19 @@ def init(type1, type2, type3, type4):
                     print(f"예외 발생: {e}")
                     break
 
+# 실행 파일의 위치를 찾는 함수
+def resource_path(relative_path):
+    # PyInstaller로 패키징되었는지 확인
+    if hasattr(sys, '_MEIPASS'):
+        # 패키징된 실행 파일의 임시 폴더 경로를 반환
+        return os.path.join(sys._MEIPASS, relative_path)
+    else:
+        # 개발 중인 경우, 프로젝트 폴더의 경로를 반환
+        return os.path.join(os.path.abspath("."), relative_path)
 
 def getImage(data, nm, yo, cnt):
-    a1, a2 = 0, 125  # 시작 좌표 (x1, y1)
-    b1, b2 = 675, 615  # 끝 좌표 (x2, y2)
+    a1, a2 = 0, 0  # 시작 좌표 (x1, y1)
+    b1, b2 = 650, 650  # 끝 좌표 (x2, y2)
 
     driver.implicitly_wait(2)
 
@@ -172,28 +199,17 @@ def getImage(data, nm, yo, cnt):
     cropped_image_path = os.path.join(r'C:\dev', img_name)
     cropped_image.save(cropped_image_path)
     cropped_image_cv = cv2.imread(cropped_image_path)
-    if dayArr[0] == comm.selSat:
-        if data == 'V':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_V_0.png'))
-        elif data == 'R':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_R_0.png'))
-        elif data == 'S':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_S_0.png'))
-        elif data == 'A':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_A_0.png'))
-        elif data == 'B':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_B_0.png'))
-    else:
-        if data == 'V':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_V_1.png'))
-        elif data == 'R':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_R_1.png'))
-        elif data == 'S':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_S_1.png'))
-        elif data == 'A':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_A_1.png'))
-        elif data == 'B':
-            target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_B_1.png'))
+
+    if data == 'V':
+        target_image_cv = cv2.imread(resource_path('img/m_v.png'))
+    elif data == 'R':
+        target_image_cv = cv2.imread(resource_path('img/m_r.png'))
+    elif data == 'S':
+        target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_S_0.png'))
+    elif data == 'A':
+        target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_A_0.png'))
+    elif data == 'B':
+        target_image_cv = cv2.imread(os.path.join(r'C:\dev', 'IU_B_0.png'))
 
     found = False
 
@@ -209,7 +225,7 @@ def getImage(data, nm, yo, cnt):
 
         cropped_image_ed = np.array(cropped_image)
         target_image_ed = np.array(target_image_cv)
-        c_rgb_image = cropped_image_ed[match_y - a2, match_x]
+        c_rgb_image = cropped_image_ed[match_y - a2, match_x - a1]
         t_rgb_value = target_image_ed[3, 3]
 
         print("[ " + str(c_rgb_image) + " ] - [ " + str(t_rgb_value) + " ]")
@@ -222,6 +238,7 @@ def getImage(data, nm, yo, cnt):
                                 int(c_rgb_image[1]) - int(t_rgb_value[1])) < 20 and abs(
                                 int(c_rgb_image[2]) - int(t_rgb_value[0])) < 20:
                             # 마우스 커서를 매칭된 위치로 이동
+                            sleep(5000)
                             actions.move_by_offset(match_x, match_y).click().perform()
                             found = True
 
@@ -288,6 +305,7 @@ def chkXY():
 
 
 if __name__ == "__main__":
+    type0 = input("Enter concert name >> ")
     type1 = input("Enter account >> ")
     type2 = input("Enter day(sat, sun) >> ")
     type3 = input("Enter grade(VRSAB) >> ")
@@ -295,5 +313,5 @@ if __name__ == "__main__":
     timeout = datetime.now()
 
     # 받은 URL 파라미터를 main 함수에 전달합니다.
-    init(type1, type2, type3, type4)
+    init(type0, type1, type2, type3, type4)
 
